@@ -8,11 +8,11 @@ with open("requirements.txt", "r") as f:
 
 
 setuptools.setup(
-    name="tpe_research",
+    name="master_project",
     version="0.0.1",
     author="nabenabe0928",
     author_email="shuhei.watanabe.utokyo@gmail.com",
-    url="https://github.com/nabenabe0928/tpe_research",
+    url="https://github.com/nabenabe0928/master_project",
     packages=setuptools.find_packages(),
     python_requires=">=3.8",
     platforms=["Linux"],
