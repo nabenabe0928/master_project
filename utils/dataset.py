@@ -96,6 +96,30 @@ class NumericalFeaturePreprocessing(BaseFeaturePreprocessing):
         ]
 
 
+def _add_nan_flag_columns(X_train: pd.DataFrame, X_test: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    nan_flags_train, nan_flags_test = X_train.isna(), X_test.isna()
+    any_nan_flags = nan_flags_train.any()
+    any_nan_cols = []
+    for col in any_nan_flags.index:
+        if any_nan_flags[col]:
+            any_nan_cols.append(col)
+
+    nan_flag_cols = {col: f"{col}_nan_flag" for col in any_nan_cols}
+    X_train = pd.concat([X_train, nan_flags_train[any_nan_cols].rename(columns=nan_flag_cols)], axis=1)
+    X_test = pd.concat([X_test, nan_flags_test[any_nan_cols].rename(columns=nan_flag_cols)], axis=1)
+
+    return X_train, X_test
+
+
+def _add_row_wise_nan_counts(X_train: pd.DataFrame, X_test: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    nan_counts_train, nan_counts_test = X_train.isna().sum(axis=1), X_test.isna().sum(axis=1)
+    if nan_counts_train.sum() != 0:
+        X_train["nan_counts"] = nan_counts_train
+        X_test["nan_counts"] = nan_counts_test
+
+    return X_train, X_test
+
+
 def _baseline_feature_preprocessing(X_train: pd.DataFrame, X_test: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     cat_cols, num_cols = CAT_COL_SELECTOR(X_train), NUM_COL_SELECTOR(X_train)
     cat_cols_train, num_cols_train = X_train[cat_cols], X_train[num_cols]
@@ -137,3 +161,12 @@ def baseline_preprocessing(
     weights_test /= weights_test.sum()
 
     return X_train, X_test, y_train, y_test, weights_train, weights_test
+
+
+def nan_feat_preprocessing(
+    X_train: pd.DataFrame, X_test: pd.DataFrame, y_train: pd.DataFrame, y_test: pd.DataFrame
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
+    X_train, X_test = _add_row_wise_nan_counts(X_train, X_test)
+    X_train, X_test = _add_nan_flag_columns(X_train, X_test)
+    return baseline_preprocessing(X_train, X_test, y_train, y_test)
