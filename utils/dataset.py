@@ -11,8 +11,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder, StandardScaler
 
-numerical_col_selector = selector(dtype_include=np.number)
-categorical_col_selector = selector(dtype_exclude=np.number)
+NUM_COL_SELECTOR = selector(dtype_include=np.number)
+CAT_COL_SELECTOR = selector(dtype_exclude=np.number)
 
 
 class _CategoryShift:
@@ -43,6 +43,9 @@ class BaseFeaturePreprocessing:
 
     def transform(self, X: pd.DataFrame) -> np.ndarray:
         assert self._preprocs is not None
+        if X.shape[-1] == 0:  # no feature to preprocess
+            return X
+
         for preproc in self._preprocs:
             X = preproc.transform(X)
 
@@ -50,6 +53,9 @@ class BaseFeaturePreprocessing:
 
     def fit_transform(self, X: pd.DataFrame) -> np.ndarray:
         assert self._preprocs is not None
+        if X.shape[-1] == 0:  # no feature to preprocess
+            return X
+
         for i, preproc in enumerate(self._preprocs):
             preproc = preproc.fit(X)
             X = preproc.transform(X)
@@ -91,12 +97,9 @@ class NumericalFeaturePreprocessing(BaseFeaturePreprocessing):
 
 
 def _baseline_feature_preprocessing(X_train: pd.DataFrame, X_test: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
-    cat_col_selector = selector(dtype_exclude=np.number)
-    num_col_selector = selector(dtype_include=np.number)
-    cat_cols_train = X_train[cat_col_selector(X_train)]
-    num_cols_train = X_train[num_col_selector(X_train)]
-    cat_cols_test = X_train[cat_col_selector(X_test)]
-    num_cols_test = X_train[num_col_selector(X_test)]
+    cat_cols, num_cols = CAT_COL_SELECTOR(X_train), NUM_COL_SELECTOR(X_train)
+    cat_cols_train, num_cols_train = X_train[cat_cols], X_train[num_cols]
+    cat_cols_test, num_cols_test = X_test[cat_cols], X_test[num_cols]
 
     num_preproc = NumericalFeaturePreprocessing()
     num_cols_train = num_preproc.fit_transform(num_cols_train)
@@ -131,4 +134,6 @@ def baseline_preprocessing(
     cat2weight = {c: N / (K * cnt) for c, cnt in zip(cat, count)}
     weights_train = np.array([cat2weight[c] for c in y_train])
     weights_test = np.array([cat2weight[c] for c in y_test])
+    weights_test /= weights_test.sum()
+
     return X_train, X_test, y_train, y_test, weights_train, weights_test

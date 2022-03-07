@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 import sklearn.ensemble
-from sklearn.experimental import enable_hist_gradient_boosting  # noqa
 
 
 class GradientBoostingHyperparameters(NamedTuple):
